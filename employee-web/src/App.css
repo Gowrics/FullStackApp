@@ -1,0 +1,26 @@
+/* Default styles for large screens */
+body {
+  display: flex;
+  justify-self: center;
+  align-items: center;
+}
+/* Apply specific styles for screens smaller than 1920px */
+@media (max-width: 1920px) {
+  body {
+    font-size: 14px;
+  }
+}
+
+/* Apply specific styles for screens smaller than 1200px (like tablets) */
+@media (max-width: 1200px) {
+  body {
+    font-size: 12px;
+  }
+}
+
+/* Apply specific styles for screens smaller than 768px (like phones) */
+@media (max-width: 768px) {
+  body {
+    font-size: 10px;
+  }
+}
