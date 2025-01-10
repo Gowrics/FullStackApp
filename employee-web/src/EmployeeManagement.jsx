@@ -1,112 +1,179 @@
-import React, { useState } from "react";
-import { useTable } from "react-table";
+import React, { useState, useEffect } from "react";
+import DataTable from "react-data-table-component";
+import axios from "axios";
+import "bootstrap/dist/css/bootstrap.min.css";
 
-const EmployeeManagement = () => {
+function EmployeeManagement() {
   const [employees, setEmployees] = useState([]);
-  const column = React.useMemo(
-    () => [
-      { Header: "EmployeeId", accessor: "employeeId" },
-      { Header: "Name", accessor: "name" },
-      { Header: "Manager", accessor: "manager" },
-      { Header: "salary", accessor: "salary" },
-    ],
-    []
-  );
-  const data = React.useMemo(() => employees, []);
-  const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } =
-    useTable({ column, data: employees });
+  const [employeeData, setEmployeeData] = useState({
+    name: "",
+    manager: "",
+    salary: "",
+  });
+  const [showCancel, setShowCancel] = useState(false);
+  const [errMsg, setErrMsg] = useState("");
+
+  const columns = [
+    { name: "Employee ID", selector: (row) => row.employeeId, sortable: true },
+    { name: "Name", selector: (row) => row.name, sortable: true },
+    { name: "Manager", selector: (row) => row.manager, sortable: true },
+    { name: "Salary", selector: (row) => row.salary, sortable: true },
+    {
+      name: "Edit",
+      cell: (row) => (
+        <button
+          className="btn btn-primary btn-sm"
+          onClick={() => handleUpdate(row)}
+        >
+          Edit
+        </button>
+      ),
+    },
+    {
+      name: "Delete",
+      cell: (row) => (
+        <button
+          className="btn btn-danger btn-sm"
+          onClick={() => handleDelete(row)}
+        >
+          Delete
+        </button>
+      ),
+    },
+  ];
+
+  const getAllEmployees = async () => {
+    try {
+      const response = await axios.get("http://localhost:8082/employees");
+      setEmployees(response.data);
+    } catch (error) {
+      console.error("Error fetching employees:", error);
+    }
+  };
+
+  const handleUpdate = (emp) => {
+    setEmployeeData(emp);
+    setShowCancel(true);
+  };
+
+  const handleDelete = async (emp) => {
+    if (window.confirm("Are you sure you want to delete this employee?")) {
+      try {
+        await axios.delete(`http://localhost:8082/employees/${emp.employeeId}`);
+        getAllEmployees();
+      } catch (error) {
+        console.error("Error deleting employee:", error);
+      }
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!employeeData.name || !employeeData.manager || !employeeData.salary) {
+      setErrMsg("All fields are required!");
+      return;
+    }
+
+    try {
+      if (employeeData.employeeId) {
+        await axios.patch(
+          `http://localhost:8082/employees/${employeeData.employeeId}`,
+          employeeData
+        );
+      } else {
+        await axios.post("http://localhost:8082/employees", employeeData);
+      }
+      clearAll();
+      getAllEmployees();
+    } catch (error) {
+      console.error("Error saving employee:", error);
+    }
+  };
+
+  const handleCancel = () => {
+    clearAll();
+  };
+
+  const clearAll = () => {
+    setEmployeeData({ name: "", manager: "", salary: "" });
+    setShowCancel(false);
+    setErrMsg("");
+  };
+
+  const handleChange = (e) => {
+    setEmployeeData({ ...employeeData, [e.target.name]: e.target.value });
+    setErrMsg("");
+  };
+
+  useEffect(() => {
+    getAllEmployees();
+  }, []);
 
   return (
-    <div>
-      <div className="container  main-container">
-        <h1>Employee Service</h1>
-        <div className="container add-panel bg-secondary border">
-          <div className="row mb-3 mt-2 ">
-            <div className="col-auto">
-              <label htmlFor="name" className="form-label">
-                Name:
-              </label>
-              <input
-                type="text"
-                className="form-control"
-                id="name"
-                name="name"
-                placeholder="Enter name"
-              />
-            </div>
-            <div className="col-auto">
-              <label htmlFor="manager" className="form-label">
-                Manager:
-              </label>
-              <input
-                type="text"
-                className="form-control"
-                id="manager"
-                name="manager"
-                placeholder="Enter manager"
-              />
-            </div>
-            <div className="col-auto">
-              <label htmlFor="salary" className="form-label">
-                Salary:
-              </label>
-              <input
-                type="text"
-                className="form-control"
-                id="salary"
-                name="salary"
-                placeholder="Enter salary"
-              />
-            </div>
-            <div className="col-auto">
-              <br />
-              <button type="button" className="btn btn-primary mt-2 ">
-                add
-              </button>{" "}
-              <button type="button" className="btn btn-primary mt-2 ">
-                Cancel
-              </button>
-            </div>
+    <div className="container mt-4">
+      <h3 className="text-center">Employee Management</h3>
+      {errMsg && <div className="alert alert-danger">{errMsg}</div>}
+
+      <form onSubmit={handleSubmit} className="mb-4">
+        <div className="row">
+          <div className="col-md-4">
+            <label htmlFor="name">Name</label>
+            <input
+              type="text"
+              className="form-control"
+              id="name"
+              name="name"
+              value={employeeData.name}
+              onChange={handleChange}
+            />
+          </div>
+          <div className="col-md-4">
+            <label htmlFor="manager">Manager</label>
+            <input
+              type="text"
+              className="form-control"
+              id="manager"
+              name="manager"
+              value={employeeData.manager}
+              onChange={handleChange}
+            />
+          </div>
+          <div className="col-md-4">
+            <label htmlFor="salary">Salary</label>
+            <input
+              type="text"
+              className="form-control"
+              id="salary"
+              name="salary"
+              value={employeeData.salary}
+              onChange={handleChange}
+            />
           </div>
         </div>
-        <input
-          type="search"
-          className="searchinput mt-3"
-          name="inputsearch"
-          id="inputsearch"
-          placeholder="Search Employee here..."
-        ></input>
-      </div>
-      <div>
-        <table
-          className="table mt-5 table-dark table-striped"
-          {...getTableProps()}
-        >
-          <thead>
-            {headerGroups.map((hg) => (
-              <tr {...hg.getHeaderGroupProps()} key={hg.id}>
-                {hg.headers.map((column) => (
-                  <th {...column.getHeaderGroupProps()} key={column.id}>
-                    {column.render}
-                  </th>
-                ))}
-              </tr>
-            ))}
-            <tr>
-              <th>Employee Name</th>
-              <th>Manager Name</th>
-              <th>Salary</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+        <div className="mt-3">
+          <button type="submit" className="btn btn-success me-2">
+            {employeeData.employeeId ? "Update" : "Add"}
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={handleCancel}
+            disabled={!showCancel}
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+
+      <DataTable
+        columns={columns}
+        data={employees}
+        pagination
+        highlightOnHover
+        fixedHeader
+      />
     </div>
   );
-};
+}
 
 export default EmployeeManagement;
